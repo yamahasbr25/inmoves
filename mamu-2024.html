@@ -82,6 +82,11 @@
     border-radius: 4px; text-align: center;
   }
   .footer-text { font-size: .75rem; color: var(--text-muted); margin-bottom: 6px; }
+  .open-direct {
+    display: inline-block; margin-top: 8px; padding: 8px 16px;
+    background: var(--accent); color: #fff; text-decoration: none;
+    border-radius: 4px; font-weight: 700;
+  }
   @media (max-width: 768px) {
     .grid { grid-template-columns: repeat(3, 1fr); gap: 4px; }
     .info-box h1 { font-size: 1.2rem; }
@@ -98,25 +103,25 @@
   </header>
 
   <div class="player-box">
-    <iframe id="main-embed" src="https://videonode.de/iframe3/p2p/l2GlnlLqq5KyBIudlPJFsA?v=1"
+    <iframe id="main-embed" src="https://videonode.de/iframe3/hydrax/9CfhvOaOq5--ACMb9etdWw"
       frameborder="0" allowfullscreen
       allow="autoplay; fullscreen; picture-in-picture; encrypted-media; screen-wake-lock"
-      referrerpolicy="no-referrer"
+      referrerpolicy="strict-origin-when-cross-origin"
       title="Mamu (2024)"></iframe>
   </div>
 
   <div class="info-box">
     <h1>Mamu (2024)</h1>
     <p class="desc">Streaming Mamu (2024) gratis subtitle indonesia kualitas HD. Saksikan aksi seru Will Beynon, Osay Okesan Ciwidian, Kirsten Foster, Aki Rupi, Suming Rupi</p>
-    <div class="cast">Available Servers: <span id="server-count">4</span></div>
+    <div class="cast">Available Servers: <span id="server-count">3</span></div>
+    <a class="open-direct" href="https://videonode.de/iframe3/hydrax/9CfhvOaOq5--ACMb9etdWw" target="_blank" rel="noopener">
+      🔗 Buka di Tab Baru
+    </a>
   </div>
 
   <div class="related-title">Pilih Server</div>
   <div class="grid" id="servers-grid">
     
-      <div class="movie-card server-btn" data-url="https://videonode.de/iframe3/p2p/l2GlnlLqq5KyBIudlPJFsA?v=1" title="https://videonode.de/iframe3/p2p/l2GlnlLqq5KyBIudlPJFsA?v=1">
-        <span>MAIN</span>
-      </div>
       <div class="movie-card server-btn" data-url="https://videonode.de/iframe3/p2p/l2GlnlLqq5KyBIudlPJFsA" title="https://videonode.de/iframe3/p2p/l2GlnlLqq5KyBIudlPJFsA">
         <span>P2P</span>
       </div>
@@ -138,12 +143,44 @@
   (function () {
     const embed = document.getElementById('main-embed');
     const grid  = document.getElementById('servers-grid');
+    const directLink = document.querySelector('.open-direct');
+
+    /* --- PROXY FALLBACK --- */
+    // Jika iframe gagal memuat (X-Frame-Options), coba lewat CORS proxy.
+    let fallbackUsed = false;
+    embed.addEventListener('error', tryProxy);
+    // 'error' jarang terpicu untuk iframe; gunakan timeout 6 detik sebagai detektor.
+    const proxyTimer = setTimeout(() => {
+      if (!fallbackUsed) tryProxy();
+    }, 6000);
+
+    function tryProxy() {
+      if (fallbackUsed) return;
+      fallbackUsed = true;
+      clearTimeout(proxyTimer);
+      const currentSrc = embed.src;
+      if (!currentSrc) return;
+      const proxied = 'https://corsproxy.io/?' + encodeURIComponent(currentSrc);
+      embed.src = proxied;
+      directLink.href = currentSrc; // tautan langsung tetap ke URL asli
+    }
+
+    /* --- SERVER SWITCHER --- */
     if (grid) {
       grid.addEventListener('click', function (e) {
         const card = e.target.closest('.server-btn');
         if (!card) return;
         const url = card.getAttribute('data-url');
-        if (url) embed.src = url;
+        if (url) {
+          embed.src = url;
+          directLink.href = url;
+          fallbackUsed = false;
+          clearTimeout(proxyTimer);
+          // pasang ulang timer untuk server baru
+          setTimeout(() => {
+            if (!fallbackUsed) tryProxy();
+          }, 6000);
+        }
         grid.querySelectorAll('.server-btn').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
         window.scrollTo({ top: 0, behavior: 'smooth' });
